@@ -1,0 +1,253 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+### Load data
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+* * *
+
+## Part 1: Data
+  
+### Purpose of the General Social Survey(GSS)
+  
+The GSS aims to gather data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes; to examine the structure and functioning of society in general as well as the role played by relevant subgroups; to compare the United States to other societies in order to place American society in comparative perspective and develop cross-national models of human society; and to make high-quality data easily accessible to scholars, students, policy makers, and others, with minimal cost and waiting.
+
+### Population of Interest
+  
+The target population of the GSS is **adults (18+) living in households in the United States.** From 1972 to 2004 it was further restricted to those able to do the survey in English. From 2006 to present it has included those able to do the survey in English or Spanish.
+  
+### Sampling Method
+  
+The survey used a **multi-stage area probability sample** to the block or segment level. At the block level, however, **quota sampling is used with quotas based on sex, age, and employment status.** The Primary Sampling Units (PSUs) employed are Standard Metropolitan Statistical Areas (SMSAs) or non-metropolitan counties selected in NORC's Master Sample. These **SMSAs and counties were stratified by region, age, and race before selection**.The units of selection of the second stage were block groups (BGs) and enumeration districts (EDs). These EDs and BGs were stratified according to race and income before selection. The third stage of selection was that of blocks. The blocks were
+**selected with probabilities proportional to size.**
+
+Thus, the GSS employed stratified random sampling and its **results are generalizable** to its population. Since there was no random assignment of survey participants to different treatments, this survey was not an experimental study and **the results should not be used to infer causality.**    
+  
+### Potential Sampling Biases
+
+Sample biases occur mainly due to the absence of people at home when interviewers call. In order to reduce this bias, the interviewers are given instructions to canvass and interview only after 3:00 p.m. on weekdays or during the weekend or holidays.
+Those unable to do the survey in either English or Spanish are not represented in the sample.
+Residents of institutions and group quarters are also out-of-scope for the survey.
+  
+* * *
+
+## Part 2: Research question
+
+**Question:** Has the proportion of women who are afraid to walk in their neighbourhood changed from 2000 to 2010?
+
+**Significance:** Violence against women is one of the most important social issues in the world. There is increased awareness. Stricter laws have been implemented. Women are more alert and more products and services are available for safety and self defence. Therefore, it is important to know whether women's perception of their safety has changed or not. 
+  
+**Variables of Interest:**  
+1. sex: Respondent's sex  
+2. fear: Is the repondent afraid to walk at night in his/her neighbourhood?
+
+* * *
+
+## Part 3: Exploratory data analysis
+  
+Filtering data for 2010 and 2000 from the entire gss dataset: 
+```{r}
+data2010<-gss%>%filter(year==2010)
+data2000<-gss%>%filter(year==2000)
+```
+  
+```{r}
+summary(data2010$sex)
+summary(data2000$sex)
+
+```
+  
+From the above table we can see that there are 1588 women in the survey sample for the year 2000 against 1229 men.Therefore 56.4% of respondents are women.
+  
+In the year 2010, there were 891 male respondents and 1153 female respondents. Therefore, 56.4% respondents were women.
+
+Filtering the data further to include only the women:
+```{r}
+femdata2000<-data2000 %>% filter(sex=='Female')
+femdata2010<-data2010 %>% filter(sex=='Female')
+```
+
+Summary statistics for our variables of interest:
+```{r}
+summary(femdata2010$fear)
+summary(femdata2000$fear)
+```
+  
+Filtering further to remove the NA values and retain only the variables of interest in our dataframe femdata2010 and femdata2000:
+```{r}
+femdata2010<-femdata2010%>%filter(!is.na(fear)) %>% select(fear)
+dim(femdata2010)[1]
+femdata2000<-femdata2000 %>% filter(!is.na(fear)) %>% select(fear)
+dim(femdata2000)[1]
+```
+  
+So, now we have dataframes containing 1022 female respondents for the year 2000 and 698 female respondents for the year 2010.
+
+We compute the proportions for response yes/no for the year 2000:
+```{r}
+prop.table(table(femdata2000$fear))
+```
+  
+Therefore, in the year 2000 52.54% of the selected female respondents reported being afraid to walk in their neighbourhood at night.
+
+We compute the proportions for response yes/no for the year 2010:  
+```{r}
+prop.table(table(femdata2010$fear))
+```
+  
+Therefore, in the year 2010 42.69% of the selected female respondents reported being afraid to walk in their neighbourhood at night.
+  
+
+* * *
+
+## Part 4: Inference
+
+Since we are going to be comparing the proportion of women who responded 'Yes' in the year 2000 and 2010, we will be applying the Central Limit Theorem for proportions.
+
+### Calculating Confidence Interval
+
+Calculating the 95% confidence interval for the difference in proportions(our parameter of interest) gives us the advantage of verifying the results of our hypothesis test.
+  
+```{r}
+n1<-dim(femdata2000)[1]
+p1<-prop.table(table(femdata2000$fear))[[1]]
+n2<-dim(femdata2010)[1]
+p2<-prop.table(table(femdata2010$fear))[[1]]
+
+```
+
+**Checking conditions for CLT:**
+
+**Condition 1(Independence):** 
+We have already established that the survey used random sampling 
+Also, the sample sizes in  the years 2000 and 2010 are(respectively):
+```{r}
+n1
+n2
+```
+As we can see, this value comes out to be 1022(n1) and 698(n2), which are less than 10% of the entire population consisting of women living in the US.  
+Therefore, **sampled observations must be independent.**
+  
+**Condition 2(sample size/skew):** 
+Computing the values of n1p1,n2p2,n1(1-p1) and n2(1-p2):
+```{r}
+n1*p1
+n1*(1-p1)
+n2*p2
+n2*(1-p2)
+```
+  
+Since all these values are greater than 10, the **success-failure condition is also satisfied.**
+  
+**Calculating Confidence Interval:**
+  
+Calculating standard error(SE):
+```{r}
+SE<-sqrt((p1*(1-p1))/n1+(p2*(1-p2))/n2)
+SE
+phatdiff=p1-p2
+phatdiff
+```
+
+Calculating z* for the 95% confidence interval
+```{r}
+Z<-qnorm(0.95+0.025)
+Z
+```
+  
+Calculating the margin of error for the 95% confidence interval:
+```{r}
+ME<-Z*SE
+ME
+```
+  
+Therefore,computing the lower and upper limit of the 95% confidence interval:
+```{r}
+phatdiff-ME
+phatdiff+ME
+```
+
+Therefore, the **95% confidence interval for the difference in proportions is: (0.0507,0.1462)**
+
+Thus, we are 95% confident that the difference in proportions of women(18+) and living in households within the US who are afraid to walk in their neighbourhood in time, between the years 2000 and 2010 lies in the interval (0.0507,0.1462) or (5.07% to 14.62%).
+  
+### Hypothesis Test
+  
+**H0(Null Hypothesis):** The proportion of women afraid to walk in their neighbourhood at night has not changed i.e **p1=p2**  
+**Ha(Alternative Hypthesis):** The proportion of women afraid to walk in their neighbourhood at night has not changed i.e **p1!=p2** 
+
+Calculating the pooled proportion:
+```{r}
+p_pool<-(table(femdata2000$fear)[[1]]+table(femdata2010$fear)[[1]])/(n1+n2)
+p_pool
+```
+
+**Checking the conditions for CLT for hypothesis test:**
+  
+**Condition 1 (Independence):** 
+  
+This condition has already been checked in the Calculating Confidence Interval Section.
+
+**Condition 2 (Sample size/skew):**  
+  
+Calculating the values of n1xp_pool, n1x(1-P_pool), n2xp_pool and n2*(1-p_pool):
+```{r}
+n1*p_pool
+n1*(1-p_pool)
+n2*p_pool
+n2*(1-p_pool)
+```
+  
+Since all these values are greater than 10, the **success-failure condition is also satisfied.**
+
+**Performing the hypothesis test:**
+  
+Calculating the standard error:
+```{r}
+se<-sqrt(p_pool*(1-p_pool)*((1/n1)+(1/n2)))
+se
+```
+
+Calculating the z-score of our point estimate phatdiff:
+```{r}
+z_score<-(phatdiff-0)/se
+z_score
+```
+
+Now, we calculate the p-value corresponding to this z_score:
+```{r}
+p_val<-2*pnorm(z_score,lower.tail = FALSE)
+p_val
+```
+
+**The p-value we obtain is = 5.97246e-05** which is much less than 0.05
+
+**Thus, our null hypothesis is rejected.**
+
+This is in agreement with the confidence interval we found in the above section. Since the 95% confidence interval did not contain 0, it was highly unlikely that there was no change in proportions between the two years.
+  
+**Conclusion:** The proportion of women who are afraid to walk in their neighbourhood after dark has changed from 2000 to 2010. Now, the proportion has become larger.
+
+### References
+1. http://gss.norc.org/documents/codebook/GSS_Codebook_mainbody.pdf  
+2. http://gss.norc.org/About-The-GSS
+3. http://gss.norc.org/documents/codebook/GSS_Codebook_AppendixA.pdf
