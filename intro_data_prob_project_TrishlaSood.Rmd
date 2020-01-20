@@ -1,0 +1,194 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.gz")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+The BRFSS combined landline and cell phone dataset is built from the landline and cell phone interviews conducted in 2013 and includes data for 50 states, the District of Columbia Guam, and Puerto Rico.
+
+### Population: 
+Non-institutionalized adult population, aged 18 years or older, who reside in the US.
+
+### Data Collection Process: 
+
+#### Landline Telephone Survey
+In conducting the BRFSS landline telephone survey, interviewers collect data from a **randomly selected adult in a household.**
+BRFSS divides telephone numbers into two groups, or strata, which are sampled separately. The high-density and medium-density strata contain telephone numbers that are expected to belong mostly to households. 
+Thus, the landline telephone survey follows a **stratified sampling method.**
+
+#### Cellular Telephone Survey:
+In conducting the cellular telephone version of the BRFSS questionnaire, interviewers collect data from an adult who participates by using a cellular telephone and resides in a private residence or college housing.
+In 2013, BRFSS respondents who received 90 percent or more of their calls on cellular telephones were eligible for participation in the cellular telephone survey.
+Cellular telephone sampling frames are commercially available. BRFSS divides the frame of telephone numbers into n intervals of size K telephone numbers. From each interval, BRFSS draws one 10-digit telephone number at random.
+
+### Inference
+
+Thus, both components of the survey employ random sampling and the survey is conducted across all the states of the US. Thus, **its conclusions are generalizable to its population**, i.e. the non-institutionalized adult population, aged 18 years or older, who reside in the US. 
+The survey only involves answering questions. Subjects are not randomly assigned to treatments. So, data collection does not directly interfere with how the data arises. Therefore, the survey functions as an observational study and only correlations can be established from the data. **No causal relationships can be formed.**  
+However, no direct method of accounting for non-telephone coverage is employed by the BRFSS.  This could have lead to a non-response sampling bias. Chances of convenience sampling are reduced as the interviewers involved in the survey were regularly monitored and assessed. 
+
+
+
+* * *
+
+## Part 2: Research questions
+
+**Research question 1: Is there a correlation between employment status and limitations on physical activities due to health issues? Does this correlation change for people who use special equipment?**  
+**Significance:** Assistive technology can be a great equalizer in ensuring that people with disabilities can obtain, retain and advance in employment. Therefore, it is important to analyse whether such equipment is available to those who need it and whether people using such equipment are better employed.  
+
+**Research question 2: Is there a correlation between income-level and breast and cervical cancer screening?**  
+**Significance:** Breast and cervical cancers are the most common causes of cancer mortality among women, but they are largely preventable diseases. Early detection is the only way to reduce morbidity and mortality, so it is important to analyse the level of accessibility of detection and screening methods across income levels. 
+
+**Research question 3: Is there a correlation between mental health and exercise?**   
+**Significance:** Exercise makes you feel good because it releases chemicals like endorphins and serotonin that improve your mood. So, it is important to note whether the amount of physical exercise people undertake is correlated to their mental health. 
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Research question 1: Is there a correlation between employment status and mental and physical health?**
+  
+**Variables:**  
+  
+1. employ1: Employment Status  
+2. qlactlm2: Activity Limitation Due To Health Problems  
+3. useequip: Health Problems Requiring Special Equipment    
+
+**Preprocessing Data:**  
+  
+```{r}
+datarq1<-brfss2013 %>% select(qlactlm2,useequip,employ1)
+datarq1<-brfss2013 %>% filter(!is.na(qlactlm2),!is.na(useequip))
+```
+**Summary Statistics:**  
+  
+```{r}
+table(datarq1$useequip,datarq1$qlactlm2)
+
+```
+Only 36.4% people reporting limitations in physical activities due to physical/mental/emotional problems are using special equipment.
+
+**Plots:**
+  
+```{r}
+datarq1<-datarq1 %>% filter(!is.na(employ1),qlactlm2!="No")
+ggplot(data=datarq1,aes(x=useequip,fill=employ1))+geom_bar(position="dodge")+labs(x="Use of special equipment",y="Count")
+```
+    
+As we can see from this graph, the major proportion of people who face limitations are either retired or unable to work regardless of whether they use special equipment.
+However, a large number of people who don't use special equipment despite facing limitations are also employed for wages. This suggests that either the extent of their limitations does not require the use of special equipment or their workplace may provide assistive facilities. This requires more detailed information.
+
+```{r}
+ndata<-brfss2013 %>% select(employ1,qlactlm2) %>% filter(!is.na(employ1),qlactlm2=="No")
+ggplot(data=ndata,aes(x=employ1))+geom_bar(position="dodge")+ggtitle("Employment status of people with no limitations on activity")+labs(x="Employment status",y="Count")+theme(axis.text.x = element_text(angle=90, hjust=1))
+```
+  
+Now, when we compare the previous graph to this graph of people facing no limitations on activity, the trend for employment status is different. Though a significant number of people are retired, a very small number of people are 'unable to work'. Thus, there does exist a correlation between limitations on activity and employment status.
+   
+**Research question 2: Is there a correlation between income-level and breast and cervical cancer screening?**  
+  
+**Variables:**
+1. income2: Income Level  
+2. hadmam: Have You Ever Had A Mammogram  
+3. hadpap2: Ever Had A Pap Test
+  
+**Preprocessing**
+
+```{r}
+datarq2<-brfss2013 %>% select(income2,hadmam,hadpap2)
+datarq2<-datarq2 %>% filter(!is.na(income2),!is.na(hadmam),!is.na(hadpap2))
+
+```
+hadmam and hadpap2 are combined into a single variable both_screenings.
+
+```{r}
+datarq2<-datarq2 %>% mutate(both_screenings=ifelse(hadmam==hadpap2,ifelse(hadmam=="Yes","Both","None"),ifelse(hadmam=="Yes","Only Breast Cancer Screening","Only Cervical Cancer screening")))
+```
+
+**Summary Statistics**
+```{r}
+summary(datarq2$income2)
+summary(datarq2$hadmam)
+summary(datarq2$hadpap2)
+table(datarq2$income2,datarq2$both_screenings)
+```
+From the above table, we can see that the number of Both(breast and cervical cancer screenings) and Only Cervical Cancer Screenings are increasing with income level. The trend in number of breast cancer screenings shows some irregularities but is also increasing overall with income level. ALso, pap smear tests seem to be more accessible than mammograms across all income levels.  
+  
+**Barplot**  
+```{r}
+ggplot(data=datarq2,aes(fill=both_screenings,x=income2))+geom_bar(position="dodge")+ggtitle(" Breast and Cervical Screenings across Income Levels")+labs(x="Income Level",y="Count")+theme(axis.text.x = element_text(angle=90, hjust=1))
+```
+  
+From the above plot we can better visualise the trends we observed from the table.
+Thus, there does exist a positive correlation between income level and both breast cancer and cervical cancer screening.
+We also notice that cervical cancer screening is more common across income levels than breast cancer screenings.
+However, from the initial 491755 records that we had, we had to filter this data to 24838 records to remove those records in which the relevant data was not available. Therefore, generalizability of this data is debatable.  
+
+**Research question 3: Is there a correlation between mental health and exercise? **  
+  
+**Variables:**  
+1. menthlth: Number Of Days Mental Health Not Good  
+2. _pacat1: Physical Activity Categories (X_pacat1 in the data set)
+
+**Preprocessing**  
+
+```{r}
+datarq3<-brfss2013 %>% select(menthlth,X_pacat1)
+datarq3<-datarq3 %>% filter(menthlth!=88,!is.na(menthlth),!is.na(X_pacat1))
+```
+
+**Summary Statistics**
+```{r}
+summary(datarq3$menthlth)
+summary(datarq3$X_pacat1)
+
+```
+
+**Barplot**
+```{r}
+dataplotrq3<-datarq3 %>% group_by(menthlth,X_pacat1) %>% summarise(count=n())
+
+```
+Now, we have prepared a frequency table which groups the data first by menthlth, then by X_pacat1. However, this table has 124 rows and it is difficult to analyse it. 
+```{r}
+ggplot(data=dataplotrq3,aes(fill=X_pacat1,y=count,x=menthlth))+geom_bar(position="dodge",stat="identity")+ggtitle("People experiencing poor mental health days (grouped by physical exercise)")+labs(x="Number of poor mental health days",y="Count")
+```
+  
+Although the above barplot makes visualization much easier, it is still difficult to determine whether a distinct correlation can be observed between mental health and physical exercise due to the large number of observations for menthlth=0 which is affecting the scale of the plot. 
+
+```{r}
+data2<-dataplotrq3%>%filter(menthlth!=0)
+ggplot(data=data2,aes(fill=X_pacat1,y=count,x=menthlth))+geom_bar(position="dodge",stat="identity")+ggtitle("People experiencing poor mental health days (grouped by physical exercise)")+labs(x="Number of poor mental health days",y="Count")
+```
+  
+As we can see from the new graph, as the number of days of poor health increases, the proportion of people who can be classified as inactive is also increasing. 
+Thus, there is a correlation between number of poor mental health days and physical exercise, although it is not very distinctive. 
+
